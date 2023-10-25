@@ -9,12 +9,12 @@ return new class extends Migration {
 
     public function up(): void
     {
-        Schema::create('customers', function (Blueprint $table) {
+        Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->string('first_name');
-            $table->string('last_name');
-            $table->string('phone')->nullable();
-            $table->string('status', 45)->nullable();
+            $table->foreignId('order_id')->constrained('orders', 'id');
+            $table->decimal('amount', 10, 2)->default(0);
+            $table->string('status', 45);
+            $table->string('type', 45);
             $table->timestamps();
             $table->foreignIdFor(User::class, 'created_by')->nullable();
             $table->foreignIdFor(User::class, 'updated_by')->nullable();
@@ -24,6 +24,6 @@ return new class extends Migration {
 
     public function down(): void
     {
-        Schema::dropIfExists('customers');
+        Schema::dropIfExists('payments');
     }
 };

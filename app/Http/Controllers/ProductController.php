@@ -1,12 +1,10 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProductRequest;
 use App\Http\Resources\ProductListResource;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
-use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;

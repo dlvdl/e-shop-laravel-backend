@@ -1,15 +1,19 @@
 <?php
 
+namespace App\Services;
+
 use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cookie;
 
+
 class CartService
 {
-    public static function getCartItemsCount()
+    public static function getCartItemsCount($cartItems = null)
     {
         $request = \request();
         $user = $request->user();
@@ -18,8 +22,8 @@ class CartService
             return CartItem::where('user_id', $user->id)->sum('quantity');
         }
 
-        $cartItems = self::getCookieCartItems();
-        return array_reduce($cartItems, fn($carry, $item) => $carry + $item['quantity'], 0);
+
+        return ($cartItems !== null) ? array_reduce($cartItems, fn($carry, $item) => $carry + $item['quantity'], 0) : 0;
     }
 
     public static function getCartItems()
@@ -91,10 +95,14 @@ class CartService
         return [$products, $cartItems];
     }
 
-    public static function getTotalSum(): int
+    public static function getTotalSum(Collection $products, array $cartItems): int
     {
-        list($products, $cartItems) = self::getProductsAndCartItems();
-        return array_reduce($products, fn($carry, $product) => $carry += $product->price * $cartItems[$product->id]['quantity'], 0);
+        $result = 0;
+        foreach ($products as $product) {
+            $result += $product->price * $cartItems[$product->id]['quantity'];
+        }
+
+        return $result;
     }
 
     public static function addToCart(Request $request, Product $product)
@@ -122,7 +130,7 @@ class CartService
         $cartItems = json_decode($request->cookie('cart_items', '[]'), true);
         $item_key = array_search($product->id, array_column($cartItems, 'product_id'));
 
-        if ($item_key) {
+        if ($item_key !== false) {
             $cartItems[$item_key]['quantity'] += $quantity;
         } else {
             $cartItems[] = [
@@ -133,8 +141,8 @@ class CartService
             ];
         }
 
-        Cookie::queue('cart_items', json_encode($cartItems), 60 * 24 * 30);
-        return ['count' => self::getCountFromItems($cartItems)];
+        // Cookie::queue('cart_items', json_encode($cartItems), 60 * 24 * 30);
+        return $cartItems;
     }
 
     public static function removeFromCart(Request $request, Product $product)
@@ -152,12 +160,12 @@ class CartService
         }
 
         $cartItems = json_decode($request->cookie('cart_items', '[]'), true);
+        //TOdo fix only one product can be remove.
         $cartItems = array_filter($cartItems, function ($item) use ($product) {
             return $item['product_id'] !== $product->id;
         });
 
-        Cookie::queue('cart_items', json_encode($cartItems), 60 * 24 * 30);
-        return ['count' => self::getCountFromItems($cartItems)];
+        return $cartItems;
     }
 
     public static function updateQuantityInCart(Request $request, Product $product)
@@ -173,7 +181,6 @@ class CartService
         $cartItems = json_decode($request->cookie('cart_items', '[]'), true);
         $item_key = array_search($product->id, array_column($cartItems, 'product_id'));
         $cartItems[$item_key]['quantity'] = $quantity;
-        Cookie::queue('cart_items', json_encode($cartItems), 60 * 24 * 30);
-        return ['count' => self::getCountFromItems($cartItems)];
+        return $cartItems;
     }
 }
